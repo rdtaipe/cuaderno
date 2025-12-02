@@ -1,0 +1,46 @@
+/* Importa las fuentes con display=swap para evitar el retraso del renderizado */
+@import url("https://fonts.googleapis.com/css2?family=League+Spartan:wght@100..900&family=Open+Sans:wght@300..800&display=swap");
+
+/* Reset básico y box-sizing universal */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Mejora de tipografía y renderizado */
+html {
+  scroll-behavior: smooth;
+  /* Navegación más fluida */
+  font-size: 16px;
+  /* Base escalable */
+}
+
+body {
+  font-family: "League Spartan", "Open Sans", sans-serif;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #222;
+  /* Texto más legible */
+  background-color: #fff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  /* No suele necesitar !important */
+  word-wrap: break-word;
+}
+
+/* Recomendado para accesibilidad en imágenes */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Para enlaces y botones, evita subrayado por defecto */
+a {
+  text-decoration: none;
+  color: inherit;
+}
