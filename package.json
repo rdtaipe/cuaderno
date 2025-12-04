@@ -21,11 +21,11 @@
     "react": "19.2.0",
     "react-color": "^2.19.3",
     "react-colorful": "^5.6.1",
-    "react-dom": "19.2.0",
-    "react-konva": "^19.2.1",
     "react-moveable": "^0.56.0",
     "react-pageflip": "^2.0.3",
+    "react-scripts": "^5.0.1",
     "react-selecto": "^1.26.3",
+    "konva": "^9.3.16",
     "styled-components": "^6.1.19",
     "uuid": "^13.0.0"
   },

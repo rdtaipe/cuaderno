@@ -303,7 +303,6 @@ export default function App() {
       prev.map((p) => (p.id === currentPage.id ? { ...p, background: { ...p.background, color } } : p)),
     );
   };
-
   const handleBackgroundImage = (url) => {
     if (!currentPage) return;
     updatePages((prev) =>
@@ -514,7 +513,6 @@ export default function App() {
     if (!currentPage) return;
     setSelection({ pageId: currentPage.id, elementId });
   };
-
   return (
     <NotebookStage>
       <Stack spacing={2} sx={{ width: "100%", maxWidth: 1700 }}>
