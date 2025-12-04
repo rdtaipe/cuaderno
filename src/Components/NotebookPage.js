@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { Box, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
@@ -16,8 +16,8 @@ const PageSheet = styled(Box)(({ background, showGrid }) => ({
   overflow: "hidden",
   ...(showGrid
     ? {
-        backgroundImage: `${background?.url ? `url(${background.url}),` : ""} repeating-linear-gradient(0deg, rgba(0,0,0,0.05), rgba(0,0,0,0.05) 1px, transparent 1px, transparent 20px), repeating-linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.05) 1px, transparent 1px, transparent 20px)`,
-      }
+      backgroundImage: `${background?.url ? `url(${background.url}),` : ""} repeating-linear-gradient(0deg, rgba(0,0,0,0.05), rgba(0,0,0,0.05) 1px, transparent 1px, transparent 20px), repeating-linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.05) 1px, transparent 1px, transparent 20px)`,
+    }
     : {}),
 }));
 
@@ -38,16 +38,7 @@ const ElementBox = styled(Box)(({ selected, isEditMode, locked }) => ({
 
 export const Page = React.forwardRef(
   (
-    {
-      page,
-      onSelectElement,
-      selectedId,
-      elementRefs,
-      onEditElement,
-      isEditMode,
-      showGrid,
-      zoom,
-    },
+    { page, onSelectElement, selectedId, onEditElement, isEditMode, showGrid, zoom },
     ref,
   ) => {
     return (
@@ -93,7 +84,6 @@ export const Page = React.forwardRef(
                     element={element}
                     onSelect={() => onSelectElement(element.id)}
                     selected={selectedId === element.id}
-                    elementRefs={elementRefs}
                     onEditElement={onEditElement}
                     isEditMode={isEditMode}
                   />
@@ -106,18 +96,7 @@ export const Page = React.forwardRef(
   },
 );
 
-const Element = ({ element, onSelect, selected, elementRefs, onEditElement, isEditMode }) => {
-  const ref = useRef();
-
-  useEffect(() => {
-    if (ref.current) {
-      elementRefs.current[element.id] = ref.current;
-    }
-    return () => {
-      delete elementRefs.current[element.id];
-    };
-  }, [element.id, elementRefs]);
-
+const Element = ({ element, onSelect, selected, onEditElement, isEditMode }) => {
   if (element.visible === false) return null;
 
   const commonStyle = {
@@ -139,7 +118,6 @@ const Element = ({ element, onSelect, selected, elementRefs, onEditElement, isEd
     const filters = element.filters || { brightness: 100, contrast: 100, saturate: 100 };
     return (
       <ElementBox
-        ref={ref}
         selected={selected}
         isEditMode={isEditMode}
         locked={element.locked}
@@ -173,7 +151,6 @@ const Element = ({ element, onSelect, selected, elementRefs, onEditElement, isEd
 
   return (
     <ElementBox
-      ref={ref}
       selected={selected}
       isEditMode={isEditMode}
       locked={element.locked}

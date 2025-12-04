@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Paper, Stack } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import Moveable from "react-moveable";
+import { Layer, Rect, Stage, Transformer } from "react-konva";
 import "@fontsource/sue-ellen-francisco";
 import { v4 as uuid } from "uuid";
 import { toJpeg, toPng } from "html-to-image";
@@ -126,28 +126,28 @@ const defaultPages = () =>
     elements:
       index === 0
         ? [
-            defaultElement({
-              name: "Título",
-              content: "Mi cuaderno creativo",
-              fontSize: 38,
-              fontWeight: 600,
-              x: 150,
-              y: 180,
-              width: 320,
-              align: "center",
-              color: "#2d2a32",
-            }),
-            defaultElement({
-              name: "Subtítulo",
-              content: "Tema o asignatura",
-              fontSize: 22,
-              x: 180,
-              y: 360,
-              width: 280,
-              align: "center",
-              color: "#3b3b3b",
-            }),
-          ]
+          defaultElement({
+            name: "Título",
+            content: "Mi cuaderno creativo",
+            fontSize: 38,
+            fontWeight: 600,
+            x: 150,
+            y: 180,
+            width: 320,
+            align: "center",
+            color: "#2d2a32",
+          }),
+          defaultElement({
+            name: "Subtítulo",
+            content: "Tema o asignatura",
+            fontSize: 22,
+            x: 180,
+            y: 360,
+            width: 280,
+            align: "center",
+            color: "#3b3b3b",
+          }),
+        ]
         : [],
   }));
 
@@ -182,8 +182,9 @@ export default function App() {
   const [spacePressed, setSpacePressed] = useState(false);
 
   const isEditMode = mode === "edit";
-  const elementRefs = useRef({});
   const canvasRef = useRef();
+  const konvaShapeRefs = useRef({});
+  const transformerRef = useRef();
 
   const currentPage = useMemo(
     () => pages.find((p) => p.id === activePageId) || pages[0],
@@ -502,16 +503,43 @@ export default function App() {
     return page ? [...page.elements].sort((a, b) => b.zIndex - a.zIndex) : [];
   }, [currentPage]);
 
-  const targetEl = isEditMode && selectedElement && !selectedElement.locked ? elementRefs.current[selectedElement.id] || null : null;
+  const canTransform = isEditMode && selectedElement && !selectedElement.locked;
 
-  const elementGuidelines = useMemo(
-    () => Object.values(elementRefs.current).filter(Boolean).filter((el) => el !== targetEl),
-    [targetEl],
-  );
+  useEffect(() => {
+    const tr = transformerRef.current;
+    if (!tr) return;
+    const node = canTransform && selection ? konvaShapeRefs.current[selection.elementId] : null;
+    tr.nodes(node ? [node] : []);
+    tr.getLayer()?.batchDraw();
+  }, [canTransform, selection, currentPage]);
 
   const handleLayerSelect = (elementId) => {
     if (!currentPage) return;
     setSelection({ pageId: currentPage.id, elementId });
+  };
+
+  const snapToBounds = (value, max, size, gap = 6) => {
+    const edges = [0, (max - size) / 2, max - size];
+    for (const edge of edges) {
+      if (Math.abs(value - edge) <= gap) return edge;
+    }
+    return value;
+  };
+
+  const handleTransformEnd = (elementId, node) => {
+    const scaleX = node.scaleX();
+    const scaleY = node.scaleY();
+    const nextWidth = Math.max(12, node.width() * scaleX);
+    const nextHeight = Math.max(12, node.height() * scaleY);
+    node.scaleX(1);
+    node.scaleY(1);
+    updateElement(elementId, {
+      x: node.x(),
+      y: node.y(),
+      width: nextWidth,
+      height: nextHeight,
+      rotation: node.rotation(),
+    });
   };
   return (
     <NotebookStage>
@@ -575,43 +603,97 @@ export default function App() {
                     page={currentPage}
                     onSelectElement={(elementId) => setSelection({ pageId: currentPage.id, elementId })}
                     selectedId={selection?.pageId === currentPage.id ? selection.elementId : null}
-                    elementRefs={elementRefs}
                     onEditElement={updateElement}
                     isEditMode={isEditMode}
                     showGrid={showGrid}
                     zoom={zoom}
                   />
                 )}
+                {currentPage && (
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      inset: 0,
+                      pointerEvents: canTransform ? "auto" : "none",
+                      width: PAGE_WIDTH * zoom,
+                      height: PAGE_HEIGHT * zoom,
+                    }}
+                  >
+                    <Stage
+                      width={PAGE_WIDTH}
+                      height={PAGE_HEIGHT}
+                      scaleX={zoom}
+                      scaleY={zoom}
+                      style={{ width: PAGE_WIDTH * zoom, height: PAGE_HEIGHT * zoom }}
+                      listening={canTransform}
+                      onMouseDown={(e) => {
+                        if (e.target === e.target.getStage()) {
+                          setSelection(null);
+                        }
+                      }}
+                    >
+                      <Layer>
+                        {currentPage.elements
+                          .filter((el) => el.visible !== false)
+                          .map((element) => (
+                            <Rect
+                              key={element.id}
+                              ref={(node) => {
+                                if (node) {
+                                  konvaShapeRefs.current[element.id] = node;
+                                } else {
+                                  delete konvaShapeRefs.current[element.id];
+                                }
+                              }}
+                              x={element.x}
+                              y={element.y}
+                              width={element.width}
+                              height={element.height}
+                              rotation={element.rotation || 0}
+                              draggable={canTransform && selection?.elementId === element.id}
+                              listening={canTransform && selection?.elementId === element.id}
+                              onClick={(evt) => {
+                                evt.cancelBubble = true;
+                                handleLayerSelect(element.id);
+                              }}
+                              onTap={(evt) => {
+                                evt.cancelBubble = true;
+                                handleLayerSelect(element.id);
+                              }}
+                              onDragMove={(evt) => {
+                                const node = evt.target;
+                                const newX = snapToBounds(node.x(), PAGE_WIDTH, node.width(), 8);
+                                const newY = snapToBounds(node.y(), PAGE_HEIGHT, node.height(), 8);
+                                node.x(newX);
+                                node.y(newY);
+                              }}
+                              onDragEnd={(evt) => {
+                                const node = evt.target;
+                                updateElement(element.id, { x: node.x(), y: node.y() });
+                              }}
+                              onTransformEnd={(evt) => handleTransformEnd(element.id, evt.target)}
+                              fillEnabled={false}
+                              strokeEnabled={false}
+                            />
+                          ))}
+                        {canTransform && selection && (
+                          <Transformer
+                            ref={transformerRef}
+                            keepRatio={selectedElement?.type === "image"}
+                            boundBoxFunc={(oldBox, newBox) => {
+                              if (Math.abs(newBox.width) < 12 || Math.abs(newBox.height) < 12) {
+                                return oldBox;
+                              }
+                              return newBox;
+                            }}
+                          />
+                        )}
+                      </Layer>
+                    </Stage>
+                  </Box>
+                )}
               </Box>
             </CanvasInner>
-            {selectedElement && isEditMode && !selectedElement.locked && (
-              <Moveable
-                target={targetEl}
-                origin={false}
-                draggable
-                resizable
-                rotatable
-                keepRatio={selectedElement.type === "image"}
-                onDrag={({ left, top }) => updateElement(selectedElement.id, { x: left, y: top })}
-                onResize={({ width, height, drag }) =>
-                  updateElement(selectedElement.id, {
-                    width,
-                    height,
-                    x: drag.beforeTranslate[0],
-                    y: drag.beforeTranslate[1],
-                  })
-                }
-                onRotate={({ beforeRotate }) => updateElement(selectedElement.id, { rotation: beforeRotate })}
-                throttleDrag={0}
-                renderDirections={["nw", "n", "ne", "w", "e", "sw", "s", "se"]}
-                edge
-                padding={{ left: 2, right: 2, top: 2, bottom: 2 }}
-                snappable
-                snapCenter
-                elementGuidelines={elementGuidelines}
-                zoom={zoom}
-              />
-            )}
           </CanvasViewport>
 
           <InspectorPanel
