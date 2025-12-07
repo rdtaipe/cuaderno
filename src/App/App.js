@@ -1,4 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { Box, Paper, Stack } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { Layer, Rect, Stage, Transformer } from "react-konva";
@@ -6,10 +11,16 @@ import "@fontsource/sue-ellen-francisco";
 import { v4 as uuid } from "uuid";
 import { toJpeg, toPng } from "html-to-image";
 import jsPDF from "jspdf";
+
 import TopBar from "../Components/TopBar";
 import NotebookToolbar from "../Components/NotebookToolbar";
 import InspectorPanel from "../Components/NotebookInspector";
 import Page from "../Components/NotebookPage";
+import StartMenu from "../Components/StartMenu";
+
+/* ─────────────────────────
+ *  STYLED COMPONENTS & CONSTANTS
+ * ───────────────────────── */
 
 const NotebookStage = styled(Box)(({ theme }) => ({
   minHeight: "100vh",
@@ -63,14 +74,25 @@ const Ruler = styled(Box)(({ orientation }) => ({
   alignItems: "center",
   zIndex: 2,
   ...(orientation === "horizontal"
-    ? { top: 0, left: 0, right: 0, height: 24, borderBottom: "1px solid #d1d5db" }
-    : { top: 0, bottom: 0, left: 0, width: 24, borderRight: "1px solid #d1d5db", writingMode: "vertical-rl" }),
+    ? {
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 24,
+      borderBottom: "1px solid #d1d5db",
+    }
+    : {
+      top: 0,
+      bottom: 0,
+      left: 0,
+      width: 24,
+      borderRight: "1px solid #d1d5db",
+      writingMode: "vertical-rl",
+    }),
 }));
 
 const PAGE_WIDTH = 560;
 const PAGE_HEIGHT = 760;
-const STORAGE_KEY = "cuaderno-interactivo";
-const ASSET_KEY = "cuaderno-interactivo-assets";
 
 const fontFamilies = [
   "'Sue Ellen Francisco', cursive",
@@ -78,6 +100,10 @@ const fontFamilies = [
   "'League Spartan', sans-serif",
   "'Times New Roman', serif",
 ];
+
+/* ─────────────────────────
+ *  HELPERS
+ * ───────────────────────── */
 
 const defaultElement = (overrides = {}) => ({
   id: uuid(),
@@ -102,89 +128,328 @@ const defaultElement = (overrides = {}) => ({
   opacity: 1,
   letterSpacing: 0,
   lineHeight: 1.4,
-  shadow: { enabled: false, offsetX: 2, offsetY: 2, blur: 6, color: "rgba(0,0,0,0.35)" },
+  shadow: {
+    enabled: false,
+    offsetX: 2,
+    offsetY: 2,
+    blur: 6,
+    color: "rgba(0,0,0,0.35)",
+  },
   visible: true,
   locked: false,
   filters: { brightness: 100, contrast: 100, saturate: 100 },
   ...overrides,
 });
 
-const defaultPages = () =>
-  Array.from({ length: 10 }, (_, index) => ({
-    id: uuid(),
-    title: index === 0 ? "Portada" : `Página ${index + 1}`,
-    background: {
-      url:
-        index === 0
-          ? null
-          : index % 2 === 0
-            ? "/hoja-izquierda.jpg"
-            : "/hoja-derecha.jpg",
-      color: index === 0 ? "#d4e5ff" : "#fdf9ef",
-    },
-    themeColor: index === 0 ? "#d9b8ff" : "#c7b8a5",
-    elements:
-      index === 0
-        ? [
-          defaultElement({
-            name: "Título",
-            content: "Mi cuaderno creativo",
-            fontSize: 38,
-            fontWeight: 600,
-            x: 150,
-            y: 180,
-            width: 320,
-            align: "center",
-            color: "#2d2a32",
-          }),
-          defaultElement({
-            name: "Subtítulo",
-            content: "Tema o asignatura",
-            fontSize: 22,
-            x: 180,
-            y: 360,
-            width: 280,
-            align: "center",
-            color: "#3b3b3b",
-          }),
-        ]
-        : [],
-  }));
+/* ─────────────────────────
+ *  SUBCOMPONENTES
+ * ───────────────────────── */
 
-export default function App() {
-  const [pages, setPages] = useState(() => {
-    const cached = localStorage.getItem(STORAGE_KEY);
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch (err) {
-        console.error("No se pudo leer el cache", err);
-      }
+/**
+ * Rulers overlay (top + left)
+ */
+function NotebookRulers({ showRulers }) {
+  if (!showRulers) return null;
+
+  return (
+    <>
+      <Ruler orientation="horizontal">
+        <Box sx={{ display: "flex", gap: 2, px: 4 }}>
+          {Array.from({ length: 12 }).map((_, idx) => (
+            <span key={idx}>{idx * 50}</span>
+          ))}
+        </Box>
+      </Ruler>
+
+      <Ruler orientation="vertical">
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            py: 4,
+          }}
+        >
+          {Array.from({ length: 16 }).map((_, idx) => (
+            <span key={idx}>{idx * 50}</span>
+          ))}
+        </Box>
+      </Ruler>
+    </>
+  );
+}
+
+/**
+ * Konva overlay for selection, dragging and transforming
+ */
+function NotebookTransformLayer({
+  currentPage,
+  selection,
+  canTransform,
+  zoom,
+  konvaShapeRefs,
+  transformerRef,
+  selectedElement,
+  snapToBounds,
+  updateElement,
+  handleTransformEnd,
+  onClearSelection,
+}) {
+  if (!currentPage) return null;
+
+  return (
+    <Box
+      sx={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: canTransform ? "auto" : "none",
+        width: PAGE_WIDTH * zoom,
+        height: PAGE_HEIGHT * zoom,
+      }}
+    >
+      <Stage
+        width={PAGE_WIDTH}
+        height={PAGE_HEIGHT}
+        scaleX={zoom}
+        scaleY={zoom}
+        style={{
+          width: PAGE_WIDTH * zoom,
+          height: PAGE_HEIGHT * zoom,
+        }}
+        listening={canTransform}
+        onMouseDown={(e) => {
+          if (e.target === e.target.getStage()) {
+            onClearSelection();
+          }
+        }}
+      >
+        <Layer>
+          {currentPage.elements
+            .filter((el) => el.visible !== false)
+            .map((element) => (
+              <Rect
+                key={element.id}
+                ref={(node) => {
+                  if (node) {
+                    konvaShapeRefs.current[element.id] = node;
+                  } else {
+                    delete konvaShapeRefs.current[element.id];
+                  }
+                }}
+                x={element.x}
+                y={element.y}
+                width={element.width}
+                height={element.height}
+                rotation={element.rotation || 0}
+                draggable={canTransform && selection?.elementId === element.id}
+                listening={canTransform && selection?.elementId === element.id}
+                onClick={(evt) => {
+                  evt.cancelBubble = true;
+                  onClearSelection(element.id, currentPage.id, false);
+                }}
+                onTap={(evt) => {
+                  evt.cancelBubble = true;
+                  onClearSelection(element.id, currentPage.id, false);
+                }}
+                onDragMove={(evt) => {
+                  const node = evt.target;
+                  const newX = snapToBounds(
+                    node.x(),
+                    PAGE_WIDTH,
+                    node.width(),
+                    8,
+                  );
+                  const newY = snapToBounds(
+                    node.y(),
+                    PAGE_HEIGHT,
+                    node.height(),
+                    8,
+                  );
+                  node.x(newX);
+                  node.y(newY);
+                }}
+                onDragEnd={(evt) => {
+                  const node = evt.target;
+                  updateElement(element.id, {
+                    x: node.x(),
+                    y: node.y(),
+                  });
+                }}
+                onTransformEnd={(evt) =>
+                  handleTransformEnd(element.id, evt.target)
+                }
+                fillEnabled={false}
+                strokeEnabled={false}
+              />
+            ))}
+
+          {canTransform && selection && (
+            <Transformer
+              ref={transformerRef}
+              keepRatio={selectedElement?.type === "image"}
+              boundBoxFunc={(oldBox, newBox) => {
+                if (
+                  Math.abs(newBox.width) < 12 ||
+                  Math.abs(newBox.height) < 12
+                ) {
+                  return oldBox;
+                }
+                return newBox;
+              }}
+            />
+          )}
+        </Layer>
+      </Stage>
+    </Box>
+  );
+}
+
+/**
+ * Canvas wrapper: rulers, page, konva transform layer, pan & zoom
+ */
+function NotebookCanvas({
+  currentPage,
+  selection,
+  setSelection,
+  isEditMode,
+  showGrid,
+  showRulers,
+  zoom,
+  offset,
+  canvasRef,
+  konvaShapeRefs,
+  transformerRef,
+  selectedElement,
+  snapToBounds,
+  updateElement,
+  handleTransformEnd,
+  handleMouseDown,
+  handleMouseMove,
+  handleMouseUp,
+}) {
+  const canTransform = isEditMode && selectedElement && !selectedElement.locked;
+
+  const handleSelectElement = (elementId, pageId, clear = false) => {
+    if (clear) {
+      setSelection(null);
+    } else {
+      setSelection({ pageId, elementId });
     }
-    return defaultPages();
-  });
-  const [activePageId, setActivePageId] = useState(() => pages[0]?.id);
-  const [selection, setSelection] = useState(null);
-  const [mode, setMode] = useState("edit");
-  const [zoom, setZoom] = useState(1);
-  const [showGrid, setShowGrid] = useState(true);
-  const [showRulers, setShowRulers] = useState(false);
-  const [projectName, setProjectName] = useState("Cuaderno creativo");
-  const [uploadedImages, setUploadedImages] = useState(() => {
-    const cached = localStorage.getItem(ASSET_KEY);
-    return cached ? JSON.parse(cached) : [];
-  });
-  const [history, setHistory] = useState([]);
-  const [future, setFuture] = useState([]);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState(null);
-  const [spacePressed, setSpacePressed] = useState(false);
+  };
+
+  return (
+    <CanvasViewport
+      showGrid={showGrid}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+    >
+      <NotebookRulers showRulers={showRulers} />
+
+      <CanvasInner offset={offset}>
+        <Box
+          ref={canvasRef}
+          sx={{
+            width: PAGE_WIDTH,
+            height: PAGE_HEIGHT,
+            position: "relative",
+          }}
+        >
+          {currentPage && (
+            <Page
+              page={currentPage}
+              onSelectElement={(elementId) =>
+                handleSelectElement(elementId, currentPage.id)
+              }
+              selectedId={
+                selection?.pageId === currentPage.id
+                  ? selection.elementId
+                  : null
+              }
+              onEditElement={updateElement}
+              isEditMode={isEditMode}
+              showGrid={showGrid}
+              zoom={zoom}
+            />
+          )}
+
+          <NotebookTransformLayer
+            currentPage={currentPage}
+            selection={selection}
+            canTransform={canTransform}
+            zoom={zoom}
+            konvaShapeRefs={konvaShapeRefs}
+            transformerRef={transformerRef}
+            selectedElement={selectedElement}
+            snapToBounds={snapToBounds}
+            updateElement={updateElement}
+            handleTransformEnd={handleTransformEnd}
+            onClearSelection={(elementId, pageId, clearAll = true) => {
+              if (clearAll) {
+                setSelection(null);
+              } else {
+                setSelection({ pageId, elementId });
+              }
+            }}
+          />
+        </Box>
+      </CanvasInner>
+    </CanvasViewport>
+  );
+}
+
+/* ─────────────────────────
+ *  COMPONENTE PRINCIPAL
+ * ───────────────────────── */
+
+export default function NotebookApp({ State, Action }) {
+  /* ── STATE ───────────────────── */
+
+  const [books] = State.use("canvas.data.books");
+  const [activeBookId] = State.use("canvas.data.activeBookId");
+  const [activePageId] = State.use("canvas.data.activePageId");
+  const [selection] = State.use("canvas.interaction.selection");
+  const [mode] = State.use("canvas.ui.mode");
+  const [zoom] = State.use("canvas.ui.zoom");
+  const [showGrid] = State.use("canvas.ui.showGrid");
+  const [showRulers] = State.use("canvas.ui.showRulers");
+  const [projectName] = State.use("canvas.data.projectName");
+  const [uploadedImages] = State.use("canvas.data.uploadedImages");
+  const [offset] = State.use("canvas.ui.offset");
+  const [isPanning] = State.use("canvas.interaction.isPanning");
+  const [panStart] = State.use("canvas.interaction.panStart");
+  const [spacePressed] = State.use("canvas.interaction.spacePressed");
+
+  const setSelection = (payload) => {
+    if (!payload) {
+      Action.canvas.clearSelection();
+    } else {
+      Action.canvas.setSelection(payload);
+    }
+  };
+
+  const setMode = Action.canvas.setMode;
+  const setZoom = Action.canvas.setZoom;
+  const setOffset = Action.canvas.setOffset;
+  const toggleGrid = Action.canvas.toggleGrid;
+  const toggleRulers = Action.canvas.toggleRulers;
+  const setPanning = Action.canvas.setPanning;
+  const setSpacePressed = Action.canvas.setSpacePressed;
+  const setProjectName = Action.canvas.setProjectName;
 
   const isEditMode = mode === "edit";
+
   const canvasRef = useRef();
   const konvaShapeRefs = useRef({});
   const transformerRef = useRef();
+
+  /* ── MEMOS ───────────────────── */
+
+  const activeBook = useMemo(
+    () => books.find((book) => book.id === activeBookId) || books[0],
+    [books, activeBookId],
+  );
+  const pages = activeBook?.pages || [];
 
   const currentPage = useMemo(
     () => pages.find((p) => p.id === activePageId) || pages[0],
@@ -197,42 +462,59 @@ export default function App() {
     return page?.elements.find((el) => el.id === selection.elementId) || null;
   }, [selection, pages]);
 
+  const sortedLayers = useMemo(() => {
+    const page = currentPage;
+    return page ? [...page.elements].sort((a, b) => b.zIndex - a.zIndex) : [];
+  }, [currentPage]);
+
+  /* ── SIDE EFFECTS ───────────────────── */
+
   useEffect(() => {
-    if (!activePageId && pages[0]) {
-      setActivePageId(pages[0].id);
+    if (!activeBook || activePageId) return;
+    if (activeBook.pages?.[0]) {
+      Action.canvas.setActivePage(activeBook.id, activeBook.pages[0].id);
     }
-  }, [activePageId, pages]);
+  }, [Action, activeBook, activePageId]);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(pages));
-  }, [pages]);
+  /* ── STATE UPDATERS ───────────────────── */
 
-  useEffect(() => {
-    localStorage.setItem(ASSET_KEY, JSON.stringify(uploadedImages));
-  }, [uploadedImages]);
+  const updateElement = (elementId, updates) => {
+    const pageId = selection?.pageId || currentPage?.id;
+    if (!activeBook || !pageId) return;
+    Action.canvas.updateElement(activeBook.id, pageId, elementId, updates);
+  };
 
-  const updatePages = useCallback((updater) => {
-    setPages((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      setHistory((h) => [...h.slice(-19), prev]);
-      setFuture([]);
-      return next;
-    });
-  }, []);
+  /* ── ELEMENT / PAGE ACTIONS ───────────────────── */
 
   const handleAddElementToPage = (element) => {
-    if (!currentPage) return;
-    updatePages((prev) =>
-      prev.map((p) => (p.id === currentPage.id ? { ...p, elements: [...p.elements, element] } : p)),
-    );
-    setSelection({ pageId: currentPage.id, elementId: element.id });
+    if (!activeBook || !currentPage) return;
+    Action.canvas.addElement(activeBook.id, currentPage.id, element);
+    Action.canvas.setSelection({ pageId: currentPage.id, elementId: element.id });
   };
 
   const handleAddPresetText = (variant, overrides = {}) => {
     const presets = {
-      title: { name: "Título", fontSize: 44, fontWeight: 700, width: 420, height: 120 },
-      subtitle: { name: "Subtítulo", fontSize: 32, fontWeight: 600, width: 420, height: 100 },
-      body: { name: "Cuerpo", fontSize: 20, fontWeight: 500, width: 420, height: 160 },
+      title: {
+        name: "Título",
+        fontSize: 44,
+        fontWeight: 700,
+        width: 420,
+        height: 120,
+      },
+      subtitle: {
+        name: "Subtítulo",
+        fontSize: 32,
+        fontWeight: 600,
+        width: 420,
+        height: 100,
+      },
+      body: {
+        name: "Cuerpo",
+        fontSize: 20,
+        fontWeight: 500,
+        width: 420,
+        height: 160,
+      },
       custom: overrides,
     };
     const base = presets[variant] || presets.body;
@@ -240,7 +522,7 @@ export default function App() {
   };
 
   const handleAddImage = (url) => {
-    if (!url || !currentPage) return;
+    if (!url || !currentPage || !activeBook) return;
     const imgElement = defaultElement({
       type: "image",
       name: "Imagen",
@@ -254,160 +536,157 @@ export default function App() {
   };
 
   const handleUploadImage = (dataUrl) => {
-    const asset = { id: uuid(), url: dataUrl };
-    setUploadedImages((prev) => [asset, ...prev].slice(0, 30));
-  };
-
-  const updateElement = (elementId, updates) => {
-    const pageId = selection?.pageId || currentPage?.id;
-    if (!pageId) return;
-    updatePages((prev) =>
-      prev.map((page) => {
-        if (page.id !== pageId) return page;
-        const updatedElements = page.elements.map((el) => (el.id === elementId ? { ...el, ...updates } : el));
-        return { ...page, elements: updatedElements };
-      }),
-    );
+    if (!dataUrl) return;
+    Action.canvas.addUploadedImage(dataUrl);
   };
 
   const handleToggleVisibility = (elementId) => {
-    updatePages((prev) =>
-      prev.map((page) => {
-        if (page.id !== currentPage.id) return page;
-        return {
-          ...page,
-          elements: page.elements.map((el) =>
-            el.id === elementId ? { ...el, visible: el.visible === false ? true : false } : el,
-          ),
-        };
-      }),
-    );
+    if (!activeBook || !currentPage) return;
+    Action.canvas.toggleElementVisibility(activeBook.id, currentPage.id, elementId);
   };
 
   const handleToggleLock = (elementId) => {
-    updatePages((prev) =>
-      prev.map((page) => {
-        if (page.id !== currentPage.id) return page;
-        return {
-          ...page,
-          elements: page.elements.map((el) => (el.id === elementId ? { ...el, locked: !el.locked } : el)),
-        };
-      }),
-    );
+    if (!activeBook || !currentPage) return;
+    Action.canvas.toggleElementLock(activeBook.id, currentPage.id, elementId);
   };
 
   const handleRenameLayer = (elementId, name) => updateElement(elementId, { name });
 
   const handleBackgroundChange = (color) => {
-    if (!currentPage) return;
-    updatePages((prev) =>
-      prev.map((p) => (p.id === currentPage.id ? { ...p, background: { ...p.background, color } } : p)),
-    );
+    if (!activeBook || !currentPage) return;
+    Action.canvas.setBackgroundColor(activeBook.id, currentPage.id, color);
   };
+
   const handleBackgroundImage = (url) => {
-    if (!currentPage) return;
-    updatePages((prev) =>
-      prev.map((p) => (p.id === currentPage.id ? { ...p, background: { ...p.background, url } } : p)),
-    );
+    if (!activeBook || !currentPage) return;
+    Action.canvas.setBackgroundImage(activeBook.id, currentPage.id, url);
   };
 
   const handleDeleteSelected = () => {
-    if (!selection) return;
-    updatePages((prev) =>
-      prev.map((page) =>
-        page.id === selection.pageId
-          ? { ...page, elements: page.elements.filter((el) => el.id !== selection.elementId) }
-          : page,
-      ),
+    if (!selection || !activeBook) return;
+    Action.canvas.removeElement(
+      activeBook.id,
+      selection.pageId,
+      selection.elementId,
     );
-    setSelection(null);
+    Action.canvas.clearSelection();
   };
 
   const handleDuplicate = () => {
-    if (!selectedElement) return;
-    const clone = { ...selectedElement, id: uuid(), x: selectedElement.x + 24, y: selectedElement.y + 24 };
-    handleAddElementToPage(clone);
+    if (!selectedElement || !activeBook || !currentPage) return;
+    Action.canvas.duplicateElement(activeBook.id, currentPage.id, selectedElement.id, {
+      x: 24,
+      y: 24,
+    });
   };
 
   const handleAlign = (direction) => {
     if (!selectedElement || !currentPage) return;
     const padding = 24;
     const updates = {};
+
     if (direction === "left") updates.x = padding;
-    if (direction === "centerX") updates.x = (PAGE_WIDTH - selectedElement.width) / 2;
-    if (direction === "right") updates.x = PAGE_WIDTH - selectedElement.width - padding;
+    if (direction === "centerX")
+      updates.x = (PAGE_WIDTH - selectedElement.width) / 2;
+    if (direction === "right")
+      updates.x = PAGE_WIDTH - selectedElement.width - padding;
+
     if (direction === "top") updates.y = padding;
-    if (direction === "centerY") updates.y = (PAGE_HEIGHT - selectedElement.height) / 2;
-    if (direction === "bottom") updates.y = PAGE_HEIGHT - selectedElement.height - padding;
+    if (direction === "centerY")
+      updates.y = (PAGE_HEIGHT - selectedElement.height) / 2;
+    if (direction === "bottom")
+      updates.y = PAGE_HEIGHT - selectedElement.height - padding;
+
     updateElement(selectedElement.id, updates);
   };
 
   const handleDistribute = (axis) => {
-    if (!currentPage) return;
+    if (!currentPage || !activeBook) return;
     const elems = currentPage.elements.filter((el) => el.visible !== false);
     if (elems.length < 2) return;
-    const sorted = [...elems].sort((a, b) => (axis === "horizontal" ? a.x - b.x : a.y - b.y));
+
+    const sorted = [...elems].sort((a, b) =>
+      axis === "horizontal" ? a.x - b.x : a.y - b.y,
+    );
     const start = 24;
     const end = axis === "horizontal" ? PAGE_WIDTH - 24 : PAGE_HEIGHT - 24;
-    const totalSize = sorted.reduce((acc, el) => acc + (axis === "horizontal" ? el.width : el.height), 0);
+    const totalSize = sorted.reduce(
+      (acc, el) => acc + (axis === "horizontal" ? el.width : el.height),
+      0,
+    );
     const gap = (end - start - totalSize) / (sorted.length - 1);
     let cursor = start;
+
     const updates = sorted.map((el) => {
-      const updated = { ...el, [axis === "horizontal" ? "x" : "y"]: cursor };
+      const updated = {
+        ...el,
+        [axis === "horizontal" ? "x" : "y"]: cursor,
+      };
       cursor += (axis === "horizontal" ? el.width : el.height) + gap;
       return updated;
     });
-    updatePages((prev) =>
-      prev.map((p) =>
-        p.id === currentPage.id
-          ? { ...p, elements: p.elements.map((el) => updates.find((u) => u.id === el.id) || el) }
-          : p,
-      ),
-    );
+
+    updates.forEach((el) => {
+      Action.canvas.updateElement(activeBook.id, currentPage.id, el.id, el);
+    });
   };
 
+  /* ── UNDO / REDO ───────────────────── */
+
   const handleUndo = useCallback(() => {
-    setHistory((prev) => {
-      if (!prev.length) return prev;
-      setPages((current) => {
-        const previous = prev[prev.length - 1];
-        setFuture((futureStack) => [current, ...futureStack].slice(0, 20));
-        return previous;
-      });
-      return prev.slice(0, -1);
-    });
-    setSelection(null);
-  }, []);
+    Action.canvas.undo();
+  }, [Action]);
 
   const handleRedo = useCallback(() => {
-    setFuture((prev) => {
-      if (!prev.length) return prev;
-      setPages((current) => {
-        const next = prev[0];
-        setHistory((h) => [...h, current].slice(-20));
-        return next;
-      });
-      return prev.slice(1);
-    });
-    setSelection(null);
-  }, []);
+    Action.canvas.redo();
+  }, [Action]);
 
-  const handleZoomChange = (value) => setZoom(Math.min(3, Math.max(0.25, value)));
+  /* ── ZOOM & EXPORT ───────────────────── */
+
+  const handleZoomChange = (value) =>
+    Action.canvas.setZoom(Math.min(3, Math.max(0.25, value)));
+
+  const handleFitToScreen = () => {
+    const viewport = canvasRef.current?.parentElement;
+    if (!viewport) return;
+    const scale = Math.min(
+      viewport.clientWidth / (PAGE_WIDTH + 40),
+      viewport.clientHeight / (PAGE_HEIGHT + 40),
+      1.5,
+    );
+    Action.canvas.setZoom(scale);
+  };
 
   const handleExport = async (format) => {
     if (!canvasRef.current) return;
     try {
       if (format === "pdf") {
-        const dataUrl = await toPng(canvasRef.current, { pixelRatio: 2 });
-        const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: [PAGE_WIDTH, PAGE_HEIGHT] });
-        pdf.addImage(dataUrl, "PNG", 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        const dataUrl = await toPng(canvasRef.current, {
+          pixelRatio: 2,
+        });
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "pt",
+          format: [PAGE_WIDTH, PAGE_HEIGHT],
+        });
+        pdf.addImage(
+          dataUrl,
+          "PNG",
+          0,
+          0,
+          PAGE_WIDTH,
+          PAGE_HEIGHT,
+        );
         pdf.save(`${projectName}.pdf`);
         return;
       }
       const dataUrl =
         format === "png"
           ? await toPng(canvasRef.current, { pixelRatio: 2 })
-          : await toJpeg(canvasRef.current, { pixelRatio: 2, quality: 0.95 });
+          : await toJpeg(canvasRef.current, {
+            pixelRatio: 2,
+            quality: 0.95,
+          });
       const link = document.createElement("a");
       link.download = `${projectName}.${format}`;
       link.href = dataUrl;
@@ -416,6 +695,8 @@ export default function App() {
       console.error("No se pudo exportar", error);
     }
   };
+
+  /* ── KEYBOARD & MOUSE HANDLERS ───────────────────── */
 
   const handleKeydown = useCallback(
     (e) => {
@@ -441,7 +722,10 @@ export default function App() {
       if (e.key === " " && !spacePressed) {
         setSpacePressed(true);
       }
-      if ((e.metaKey || e.ctrlKey) && (e.key === "+" || e.key === "=")) {
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        (e.key === "+" || e.key === "=")
+      ) {
         e.preventDefault();
         handleZoomChange(zoom + 0.1);
       }
@@ -450,12 +734,24 @@ export default function App() {
         handleZoomChange(zoom - 0.1);
       }
     },
-    [handleRedo, handleUndo, handleDuplicate, spacePressed, zoom],
+    [
+      handleRedo,
+      handleUndo,
+      handleDuplicate,
+      handleDeleteSelected,
+      handleZoomChange,
+      setSpacePressed,
+      spacePressed,
+      zoom,
+    ],
   );
 
-  const handleKeyup = useCallback((e) => {
-    if (e.key === " ") setSpacePressed(false);
-  }, []);
+  const handleKeyup = useCallback(
+    (e) => {
+      if (e.key === " ") setSpacePressed(false);
+    },
+    [setSpacePressed],
+  );
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeydown);
@@ -471,52 +767,36 @@ export default function App() {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        setZoom((prev) => Math.min(3, Math.max(0.25, prev + delta)));
+        const nextZoom = Math.min(3, Math.max(0.25, zoom + delta));
+        setZoom(nextZoom);
       }
     };
-    window.addEventListener("wheel", handleWheel, { passive: false });
-    return () => window.removeEventListener("wheel", handleWheel);
-  }, []);
+    window.addEventListener("wheel", handleWheel, {
+      passive: false,
+    });
+    return () =>
+      window.removeEventListener("wheel", handleWheel);
+  }, [setZoom, zoom]);
 
   const handleMouseDown = (e) => {
     if (!spacePressed) return;
-    setIsPanning(true);
-    setPanStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+    setPanning(true, {
+      x: e.clientX - offset.x,
+      y: e.clientY - offset.y,
+    });
   };
 
   const handleMouseMove = (e) => {
     if (!isPanning || !panStart) return;
-    setOffset({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
+    setOffset({
+      x: e.clientX - panStart.x,
+      y: e.clientY - panStart.y,
+    });
   };
 
-  const handleMouseUp = () => setIsPanning(false);
+  const handleMouseUp = () => setPanning(false, null);
 
-  const handleFitToScreen = () => {
-    const viewport = canvasRef.current?.parentElement;
-    if (!viewport) return;
-    const scale = Math.min(viewport.clientWidth / (PAGE_WIDTH + 40), viewport.clientHeight / (PAGE_HEIGHT + 40), 1.5);
-    setZoom(scale);
-  };
-
-  const sortedLayers = useMemo(() => {
-    const page = currentPage;
-    return page ? [...page.elements].sort((a, b) => b.zIndex - a.zIndex) : [];
-  }, [currentPage]);
-
-  const canTransform = isEditMode && selectedElement && !selectedElement.locked;
-
-  useEffect(() => {
-    const tr = transformerRef.current;
-    if (!tr) return;
-    const node = canTransform && selection ? konvaShapeRefs.current[selection.elementId] : null;
-    tr.nodes(node ? [node] : []);
-    tr.getLayer()?.batchDraw();
-  }, [canTransform, selection, currentPage]);
-
-  const handleLayerSelect = (elementId) => {
-    if (!currentPage) return;
-    setSelection({ pageId: currentPage.id, elementId });
-  };
+  /* ── KONVA HELPERS ───────────────────── */
 
   const snapToBounds = (value, max, size, gap = 6) => {
     const edges = [0, (max - size) / 2, max - size];
@@ -541,6 +821,107 @@ export default function App() {
       rotation: node.rotation(),
     });
   };
+
+  useEffect(() => {
+    const tr = transformerRef.current;
+    if (!tr) return;
+    const node =
+      isEditMode &&
+        selectedElement &&
+        !selectedElement.locked &&
+        selection
+        ? konvaShapeRefs.current[selection.elementId]
+        : null;
+    tr.nodes(node ? [node] : []);
+    tr.getLayer()?.batchDraw();
+  }, [isEditMode, selectedElement, selection, currentPage]);
+
+  if (mode === "library" || !activeBook) {
+    return (
+      <NotebookStage>
+        <Stack spacing={3} sx={{ width: "100%", maxWidth: 1100 }}>
+          <TopBar
+            projectName={projectName}
+            onProjectNameChange={setProjectName}
+            onUndo={() => {}}
+            onRedo={() => {}}
+            zoom={zoom}
+            onZoomChange={() => {}}
+            onFit={() => {}}
+            onCenter={() => {}}
+            showGrid={showGrid}
+            onToggleGrid={() => {}}
+            showRulers={showRulers}
+            onToggleRulers={() => {}}
+            onExport={() => {}}
+            mode="library"
+            onModeChange={() => {}}
+          />
+          <StartMenu
+            books={books}
+            onOpenBook={(bookId) => {
+              Action.canvas.setActiveBook(bookId);
+              Action.canvas.setMode("edit");
+            }}
+            onCreateBook={() => {
+              const newBookId = uuid();
+              const firstPageId = uuid();
+              Action.canvas.addBook({
+                id: newBookId,
+                type: "book",
+                value: "Nuevo cuaderno",
+                style: {
+                  width: 800,
+                  height: 600,
+                  backgroundColor: "#f5f5f5",
+                  fontFamily: "Arial, sans-serif",
+                  fontSize: "16px",
+                  color: "#000000",
+                },
+                attributes: {
+                  author: "Autor",
+                  paperType: "plain",
+                  defaultStyles: {
+                    title: { fontSize: "24px", fontWeight: "bold", color: "#0000aa" },
+                    paragraph: { fontSize: "16px", lineHeight: "1.5", marginBottom: "20px" },
+                  },
+                },
+                elements: [],
+                pages: [
+                  {
+                    id: firstPageId,
+                    type: "page",
+                    value: "Página 1",
+                    style: {
+                      width: 800,
+                      height: 600,
+                      backgroundColor: "#ffffff",
+                      fontFamily: "Georgia, serif",
+                    },
+                    attributes: {
+                      pageNumber: 1,
+                      template: "blank",
+                    },
+                    elements: [],
+                  },
+                ],
+                history: [],
+                relationships: {
+                  groups: [],
+                  sequences: [{ type: "pageOrder", order: [firstPageId] }],
+                },
+              });
+              Action.canvas.setActiveBook(newBookId);
+              Action.canvas.setMode("edit");
+            }}
+          />
+        </Stack>
+      </NotebookStage>
+    );
+  }
+
+  /* ── RENDER ───────────────────── */
+
   return (
     <NotebookStage>
       <Stack spacing={2} sx={{ width: "100%", maxWidth: 1700 }}>
@@ -554,12 +935,13 @@ export default function App() {
           onFit={handleFitToScreen}
           onCenter={() => setOffset({ x: 0, y: 0 })}
           showGrid={showGrid}
-          onToggleGrid={() => setShowGrid((prev) => !prev)}
+          onToggleGrid={toggleGrid}
           showRulers={showRulers}
-          onToggleRulers={() => setShowRulers((prev) => !prev)}
+          onToggleRulers={toggleRulers}
           onExport={handleExport}
           mode={mode}
           onModeChange={setMode}
+          onOpenLibrary={() => Action.canvas.setMode("library")}
         />
 
         <CanvasFrame>
@@ -572,129 +954,26 @@ export default function App() {
             onAddPresetText={handleAddPresetText}
           />
 
-          <CanvasViewport
+          <NotebookCanvas
+            currentPage={currentPage}
+            selection={selection}
+            setSelection={setSelection}
+            isEditMode={isEditMode}
             showGrid={showGrid}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-          >
-            {showRulers && (
-              <>
-                <Ruler orientation="horizontal">
-                  <Box sx={{ display: "flex", gap: 2, px: 4 }}>
-                    {Array.from({ length: 12 }).map((_, idx) => (
-                      <span key={idx}>{idx * 50}</span>
-                    ))}
-                  </Box>
-                </Ruler>
-                <Ruler orientation="vertical">
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2, py: 4 }}>
-                    {Array.from({ length: 16 }).map((_, idx) => (
-                      <span key={idx}>{idx * 50}</span>
-                    ))}
-                  </Box>
-                </Ruler>
-              </>
-            )}
-            <CanvasInner offset={offset}>
-              <Box ref={canvasRef} sx={{ width: PAGE_WIDTH, height: PAGE_HEIGHT, position: "relative" }}>
-                {currentPage && (
-                  <Page
-                    page={currentPage}
-                    onSelectElement={(elementId) => setSelection({ pageId: currentPage.id, elementId })}
-                    selectedId={selection?.pageId === currentPage.id ? selection.elementId : null}
-                    onEditElement={updateElement}
-                    isEditMode={isEditMode}
-                    showGrid={showGrid}
-                    zoom={zoom}
-                  />
-                )}
-                {currentPage && (
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      inset: 0,
-                      pointerEvents: canTransform ? "auto" : "none",
-                      width: PAGE_WIDTH * zoom,
-                      height: PAGE_HEIGHT * zoom,
-                    }}
-                  >
-                    <Stage
-                      width={PAGE_WIDTH}
-                      height={PAGE_HEIGHT}
-                      scaleX={zoom}
-                      scaleY={zoom}
-                      style={{ width: PAGE_WIDTH * zoom, height: PAGE_HEIGHT * zoom }}
-                      listening={canTransform}
-                      onMouseDown={(e) => {
-                        if (e.target === e.target.getStage()) {
-                          setSelection(null);
-                        }
-                      }}
-                    >
-                      <Layer>
-                        {currentPage.elements
-                          .filter((el) => el.visible !== false)
-                          .map((element) => (
-                            <Rect
-                              key={element.id}
-                              ref={(node) => {
-                                if (node) {
-                                  konvaShapeRefs.current[element.id] = node;
-                                } else {
-                                  delete konvaShapeRefs.current[element.id];
-                                }
-                              }}
-                              x={element.x}
-                              y={element.y}
-                              width={element.width}
-                              height={element.height}
-                              rotation={element.rotation || 0}
-                              draggable={canTransform && selection?.elementId === element.id}
-                              listening={canTransform && selection?.elementId === element.id}
-                              onClick={(evt) => {
-                                evt.cancelBubble = true;
-                                handleLayerSelect(element.id);
-                              }}
-                              onTap={(evt) => {
-                                evt.cancelBubble = true;
-                                handleLayerSelect(element.id);
-                              }}
-                              onDragMove={(evt) => {
-                                const node = evt.target;
-                                const newX = snapToBounds(node.x(), PAGE_WIDTH, node.width(), 8);
-                                const newY = snapToBounds(node.y(), PAGE_HEIGHT, node.height(), 8);
-                                node.x(newX);
-                                node.y(newY);
-                              }}
-                              onDragEnd={(evt) => {
-                                const node = evt.target;
-                                updateElement(element.id, { x: node.x(), y: node.y() });
-                              }}
-                              onTransformEnd={(evt) => handleTransformEnd(element.id, evt.target)}
-                              fillEnabled={false}
-                              strokeEnabled={false}
-                            />
-                          ))}
-                        {canTransform && selection && (
-                          <Transformer
-                            ref={transformerRef}
-                            keepRatio={selectedElement?.type === "image"}
-                            boundBoxFunc={(oldBox, newBox) => {
-                              if (Math.abs(newBox.width) < 12 || Math.abs(newBox.height) < 12) {
-                                return oldBox;
-                              }
-                              return newBox;
-                            }}
-                          />
-                        )}
-                      </Layer>
-                    </Stage>
-                  </Box>
-                )}
-              </Box>
-            </CanvasInner>
-          </CanvasViewport>
+            showRulers={showRulers}
+            zoom={zoom}
+            offset={offset}
+            canvasRef={canvasRef}
+            konvaShapeRefs={konvaShapeRefs}
+            transformerRef={transformerRef}
+            selectedElement={selectedElement}
+            snapToBounds={snapToBounds}
+            updateElement={updateElement}
+            handleTransformEnd={handleTransformEnd}
+            handleMouseDown={handleMouseDown}
+            handleMouseMove={handleMouseMove}
+            handleMouseUp={handleMouseUp}
+          />
 
           <InspectorPanel
             selectedElement={selectedElement}
@@ -704,7 +983,12 @@ export default function App() {
             onBackgroundChange={handleBackgroundChange}
             onBackgroundImage={handleBackgroundImage}
             sortedLayers={sortedLayers}
-            onLayerSelect={handleLayerSelect}
+            onLayerSelect={(elementId) =>
+              setSelection({
+                pageId: currentPage.id,
+                elementId,
+              })
+            }
             onToggleVisibility={handleToggleVisibility}
             onToggleLock={handleToggleLock}
             onRenameLayer={handleRenameLayer}

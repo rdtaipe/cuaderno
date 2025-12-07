@@ -282,7 +282,25 @@ export const mediaQueries = {
   },
 };
 
+
+export const Header={
+    font1:' "Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+    font2:'"Open Sans", Helvetica Neue, sans-serif',
+
+    ButtonToolbarHeight:45,
+    ButtonToolbarLeft:'50',
+    ButtonToolbarRight:'50',
+    cavasWidth:'1000',
+    cavasHeight:600,
+    ConfigAreaWidth:'250',
+    ConfigAreaHeight:600,
+    canvasBackgroungColor:"#eee",
+    configAreaBackgroungColor:"#F5F5F5"
+}
+
+
 export default {
+
     AppContainer,
     StyledToolbar,
     NotebookGrid,
@@ -302,6 +320,8 @@ export default {
     ColorPickerContainer,
     ColorButton,
     ColorPickerPopup,
+    // homepage
+    Header
   };
 
 

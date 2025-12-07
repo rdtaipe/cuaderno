@@ -21,6 +21,7 @@ import RulerIcon from "@mui/icons-material/Straighten";
 import DownloadIcon from "@mui/icons-material/Download";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
+import HomeIcon from "@mui/icons-material/Home";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 
 const zoomOptions = [0.25, 0.5, 1, 2];
@@ -41,6 +42,7 @@ export default function TopBar({
   onExport,
   mode,
   onModeChange,
+  onOpenLibrary,
 }) {
   const [anchorEl, setAnchorEl] = React.useState(null);
 
@@ -112,6 +114,11 @@ export default function TopBar({
         </Stack>
 
         <Stack direction="row" spacing={1} alignItems="center">
+          {onOpenLibrary && (
+            <Button variant="outlined" onClick={onOpenLibrary} startIcon={<HomeIcon />}>
+              Inicio
+            </Button>
+          )}
           <Button
             variant={mode === "view" ? "contained" : "outlined"}
             startIcon={<VisibilityIcon />}

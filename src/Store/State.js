@@ -1,0 +1,811 @@
+import Style from "../Style/Style.js";
+
+const PAGE_WIDTH = 560;
+const PAGE_HEIGHT = 760;
+const fontFamilies = [
+  "'Sue Ellen Francisco', cursive",
+  "'Open Sans', sans-serif",
+  "'League Spartan', sans-serif",
+  "'Times New Roman', serif",
+];
+
+const sampleBook = {
+  id: "book_leon_raton",
+  type: "book",
+  value: "Fábulas Infantiles",
+  style: {
+    width: 800,
+    height: 600,
+    backgroundColor: "#ffbf00ff",
+    fontFamily: "Arial, sans-serif",
+    fontSize: "16px",
+    color: "#000000",
+  },
+  attributes: {
+    author: "Esopo (Adaptación)",
+    paperType: "lined",
+    genre: "Fábula",
+    targetAge: "4-8 años",
+    defaultPage: {
+      width: 800,
+      height: 600,
+      backgroundColor: "#f9f5e9",
+      margins: { top: 40, right: 60, bottom: 40, left: 60 },
+    },
+  },
+  cover: {
+    elements: [
+      {
+        id: "cover_title",
+        type: "text",
+        value: "EL LEÓN Y EL RATÓN",
+        style: {
+          x: 400,
+          y: 200,
+          width: 600,
+          height: 100,
+          fontSize: "36px",
+          fontWeight: "900",
+          fontFamily: "'Comic Sans MS', cursive",
+          color: "#8b4513",
+          textAlign: "center",
+          textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
+          backgroundColor: "transparent",
+        },
+        attributes: {
+          role: "title",
+          editable: true,
+        },
+      },
+      {
+        id: "cover_subtitle",
+        type: "text",
+        value: "Una fábula de Esopo",
+        style: {
+          x: 400,
+          y: 280,
+          width: 400,
+          height: 40,
+          fontSize: "20px",
+          fontFamily: "Georgia, serif",
+          color: "#654321",
+          fontStyle: "italic",
+          textAlign: "center",
+        },
+        attributes: {
+          role: "subtitle",
+        },
+      },
+      {
+        id: "cover_image",
+        type: "image",
+        value: "assets/lion_mouse_fable.png",
+        style: {
+          x: 400,
+          y: 400,
+          width: 300,
+          height: 200,
+          borderRadius: "10px",
+          border: "4px solid #8b4513",
+          objectFit: "contain",
+        },
+        attributes: {
+          alt: "El león y el ratón",
+          srcType: "local",
+        },
+      },
+    ],
+  },
+  pages: [
+    {
+      id: "page_1",
+      type: "page",
+      value: "El encuentro",
+      style: {
+        backgroundColor: "#fffef7",
+        width: 800,
+        height: 600,
+      },
+      attributes: {
+        number: 1,
+        paperType: "lined",
+      },
+      layers: [
+        {
+          id: "layer_main",
+          order: 1,
+          elements: [
+            {
+              id: "page_title_1",
+              type: "text",
+              value: "Página 1: El encuentro",
+              style: {
+                x: 400,
+                y: 30,
+                width: 500,
+                height: 40,
+                fontSize: "22px",
+                fontWeight: "bold",
+                fontFamily: "'Comic Sans MS', cursive",
+                color: "#2c5530",
+                textAlign: "center",
+                textDecoration: "underline",
+              },
+              attributes: {
+                role: "pageTitle",
+              },
+            },
+            {
+              id: "illustration_1",
+              type: "shape",
+              value: "rectangle",
+              style: {
+                x: 100,
+                y: 80,
+                width: 250,
+                height: 180,
+                fill: "#e6f3ff",
+                stroke: "#4a90e2",
+                strokeWidth: 3,
+                borderRadius: "15px",
+              },
+              attributes: {
+                shapeType: "rectangle",
+              },
+            },
+            {
+              id: "text_content_1",
+              type: "text",
+              value:
+                "Había una vez un poderoso león que dormía plácidamente bajo la sombra de un gran árbol en la selva. Mientras dormía, un pequeño ratón comenzó a correr sobre su cuerpo, despertándolo de su sueño.\n\nEl león, enfurecido, atrapó al ratón con una de sus enormes patas. El pequeño ratón, temblando de miedo, suplicó:\n\n¡Por favor, señor león, no me mates! Algún día podré ayudarte.\n\nEl león soltó una carcajada ante la idea de que un ratón tan pequeño pudiera ayudarlo, pero decidió dejarlo ir.",
+              style: {
+                x: 380,
+                y: 90,
+                width: 360,
+                height: "auto",
+                fontSize: "16px",
+                fontFamily: "Georgia, serif",
+                lineHeight: 1.6,
+                color: "#333333",
+                textAlign: "justify",
+              },
+              attributes: {
+                role: "paragraph",
+                editable: true,
+                multiline: true,
+              },
+            },
+            {
+              id: "decoration_1",
+              type: "shape",
+              value: "circle",
+              style: {
+                x: 700,
+                y: 500,
+                width: 60,
+                height: 60,
+                fill: "#ffd700",
+                opacity: 0.3,
+              },
+              attributes: {
+                shapeType: "circle",
+              },
+            },
+          ],
+        },
+      ],
+      elements: [
+        {
+          id: "page_title_1",
+          type: "text",
+          value: "Página 1: El encuentro",
+          style: {
+            x: 400,
+            y: 30,
+            width: 500,
+            height: 40,
+            fontSize: "22px",
+            fontWeight: "bold",
+            fontFamily: "'Comic Sans MS', cursive",
+            color: "#2c5530",
+            textAlign: "center",
+            textDecoration: "underline",
+          },
+          attributes: { role: "pageTitle" },
+        },
+        {
+          id: "illustration_1",
+          type: "shape",
+          value: "rectangle",
+          style: {
+            x: 100,
+            y: 80,
+            width: 250,
+            height: 180,
+            fill: "#e6f3ff",
+            stroke: "#4a90e2",
+            strokeWidth: 3,
+            borderRadius: "15px",
+          },
+          attributes: { shapeType: "rectangle" },
+        },
+        {
+          id: "text_content_1",
+          type: "text",
+          value:
+            "Había una vez un poderoso león que dormía plácidamente bajo la sombra de un gran árbol en la selva. Mientras dormía, un pequeño ratón comenzó a correr sobre su cuerpo, despertándolo de su sueño.\n\nEl león, enfurecido, atrapó al ratón con una de sus enormes patas. El pequeño ratón, temblando de miedo, suplicó:\n\n¡Por favor, señor león, no me mates! Algún día podré ayudarte.\n\nEl león soltó una carcajada ante la idea de que un ratón tan pequeño pudiera ayudarlo, pero decidió dejarlo ir.",
+          style: {
+            x: 380,
+            y: 90,
+            width: 360,
+            height: "auto",
+            fontSize: "16px",
+            fontFamily: "Georgia, serif",
+            lineHeight: 1.6,
+            color: "#333333",
+            textAlign: "justify",
+          },
+          attributes: { role: "paragraph", editable: true },
+        },
+        {
+          id: "decoration_1",
+          type: "shape",
+          value: "circle",
+          style: {
+            x: 700,
+            y: 500,
+            width: 60,
+            height: 60,
+            fill: "#ffd700",
+            opacity: 0.3,
+          },
+          attributes: { shapeType: "circle" },
+        },
+      ],
+    },
+    {
+      id: "page_2",
+      type: "page",
+      value: "El problema",
+      style: {
+        backgroundColor: "#f7fff7",
+      },
+      attributes: {
+        number: 2,
+      },
+      layers: [
+        {
+          id: "layer_main",
+          order: 1,
+          elements: [
+            {
+              id: "page_title_2",
+              type: "text",
+              value: "Página 2: La trampa",
+              style: {
+                x: 400,
+                y: 30,
+                width: 500,
+                height: 40,
+                fontSize: "22px",
+                fontWeight: "bold",
+                fontFamily: "'Comic Sans MS', cursive",
+                color: "#2c5530",
+                textAlign: "center",
+                textDecoration: "underline",
+              },
+              attributes: {
+                role: "pageTitle",
+              },
+            },
+            {
+              id: "text_content_2",
+              type: "text",
+              value:
+                "Días después, mientras el león paseaba por la selva, cayó en una trampa que habían puesto unos cazadores. Quedó atrapado en una red fuerte que no podía romper con sus garras.\n\nEl león rugió con fuerza, llenando la selva con sus quejidos de desesperación. El pequeño ratón, que estaba cerca, reconoció la voz del león y corrió hacia él.\n\nNo te preocupes, amigo león dijo el ratón. Yo te ayudaré.\n\nEl león, aunque escéptico, no tenía otra opción que confiar en el pequeño animal.",
+              style: {
+                x: 100,
+                y: 100,
+                width: 320,
+                height: "auto",
+                fontSize: "16px",
+                fontFamily: "Georgia, serif",
+                color: "#333333",
+                lineHeight: 1.6,
+                textAlign: "justify",
+              },
+              attributes: {
+                role: "paragraph",
+              },
+            },
+            {
+              id: "illustration_2",
+              type: "shape",
+              value: "rectangle",
+              style: {
+                x: 450,
+                y: 100,
+                width: 300,
+                height: 200,
+                fill: "#fff0f0",
+                stroke: "#d9534f",
+                strokeWidth: 3,
+                borderRadius: "10px",
+                dashArray: "5,5",
+              },
+              attributes: {
+                shapeType: "rectangle",
+                dashed: true,
+              },
+            },
+            {
+              id: "caption_2",
+              type: "text",
+              value: "El león atrapado en la red",
+              style: {
+                x: 600,
+                y: 320,
+                width: 200,
+                height: 30,
+                fontSize: "14px",
+                fontFamily: "Arial, sans-serif",
+                color: "#666666",
+                fontStyle: "italic",
+                textAlign: "center",
+              },
+              attributes: {
+                role: "caption",
+              },
+            },
+          ],
+        },
+      ],
+      elements: [
+        {
+          id: "page_title_2",
+          type: "text",
+          value: "Página 2: La trampa",
+          style: {
+            x: 400,
+            y: 30,
+            width: 500,
+            height: 40,
+            fontSize: "22px",
+            fontWeight: "bold",
+            fontFamily: "'Comic Sans MS', cursive",
+            color: "#2c5530",
+            textAlign: "center",
+            textDecoration: "underline",
+          },
+          attributes: { role: "pageTitle" },
+        },
+        {
+          id: "text_content_2",
+          type: "text",
+          value:
+            "Días después, mientras el león paseaba por la selva, cayó en una trampa que habían puesto unos cazadores. Quedó atrapado en una red fuerte que no podía romper con sus garras.\n\nEl león rugió con fuerza, llenando la selva con sus quejidos de desesperación. El pequeño ratón, que estaba cerca, reconoció la voz del león y corrió hacia él.\n\nNo te preocupes, amigo león dijo el ratón. Yo te ayudaré.\n\nEl león, aunque escéptico, no tenía otra opción que confiar en el pequeño animal.",
+          style: {
+            x: 100,
+            y: 100,
+            width: 320,
+            height: "auto",
+            fontSize: "16px",
+            fontFamily: "Georgia, serif",
+            color: "#333333",
+            lineHeight: 1.6,
+            textAlign: "justify",
+          },
+          attributes: { role: "paragraph" },
+        },
+        {
+          id: "illustration_2",
+          type: "shape",
+          value: "rectangle",
+          style: {
+            x: 450,
+            y: 100,
+            width: 300,
+            height: 200,
+            fill: "#fff0f0",
+            stroke: "#d9534f",
+            strokeWidth: 3,
+            borderRadius: "10px",
+            dashArray: "5,5",
+          },
+          attributes: { shapeType: "rectangle", dashed: true },
+        },
+        {
+          id: "caption_2",
+          type: "text",
+          value: "El león atrapado en la red",
+          style: {
+            x: 600,
+            y: 320,
+            width: 200,
+            height: 30,
+            fontSize: "14px",
+            fontFamily: "Arial, sans-serif",
+            color: "#666666",
+            fontStyle: "italic",
+            textAlign: "center",
+          },
+          attributes: { role: "caption" },
+        },
+      ],
+    },
+    {
+      id: "page_3",
+      type: "page",
+      value: "La solución",
+      style: {
+        backgroundColor: "#fff7f0",
+      },
+      attributes: {
+        number: 3,
+      },
+      layers: [
+        {
+          id: "layer_main",
+          order: 1,
+          elements: [
+            {
+              id: "page_title_3",
+              type: "text",
+              value: "Página 3: La ayuda inesperada",
+              style: {
+                x: 400,
+                y: 30,
+                width: 500,
+                height: 40,
+                fontSize: "22px",
+                fontWeight: "bold",
+                fontFamily: "'Comic Sans MS', cursive",
+                color: "#2c5530",
+                textAlign: "center",
+                textDecoration: "underline",
+              },
+              attributes: {
+                role: "pageTitle",
+              },
+            },
+            {
+              id: "text_content_3",
+              type: "text",
+              value:
+                "El ratón comenzó a roer las cuerdas de la red con sus pequeños pero afilados dientes. Trabajó sin descanso durante horas, mordisqueando una y otra cuerda hasta que, finalmente, la red comenzó a ceder.\n\n¡Estás casi libre! anunció el ratón.\n\nCon un último esfuerzo, el ratón rompió la cuerda principal y el león pudo liberarse. El poderoso león quedó asombrado y agradecido.\n\nPerdóname por haberte subestimado dijo el león. Hoy has demostrado que hasta los más pequeños pueden ser de gran ayuda.",
+              style: {
+                x: 100,
+                y: 100,
+                width: 320,
+                height: "auto",
+                fontSize: "16px",
+                fontFamily: "Georgia, serif",
+                color: "#333333",
+                lineHeight: 1.6,
+                textAlign: "justify",
+              },
+              attributes: {
+                role: "paragraph",
+              },
+            },
+            {
+              id: "moral_box",
+              type: "shape",
+              value: "rectangle",
+              style: {
+                x: 480,
+                y: 400,
+                width: 280,
+                height: 150,
+                fill: "#fffacd",
+                stroke: "#ffa500",
+                strokeWidth: 2,
+                borderRadius: "10px",
+              },
+              attributes: {
+                shapeType: "rectangle",
+              },
+            },
+            {
+              id: "moral_title",
+              type: "text",
+              value: "Moraleja",
+              style: {
+                x: 620,
+                y: 420,
+                width: 100,
+                height: 30,
+                fontSize: "18px",
+                fontWeight: "bold",
+                fontFamily: "'Comic Sans MS', cursive",
+                color: "#b8860b",
+                textAlign: "center",
+              },
+              attributes: {
+                role: "title",
+              },
+            },
+            {
+              id: "moral_text",
+              type: "text",
+              value:
+                "Nunca subestimes a los demás. Los actos de bondad nunca se pierden, y siempre es posible ayudar sin importar nuestro tamaño.",
+              style: {
+                x: 620,
+                y: 460,
+                width: 200,
+                height: 80,
+                fontSize: "14px",
+                fontFamily: "Georgia, serif",
+                color: "#8b4513",
+                lineHeight: 1.4,
+                textAlign: "center",
+                fontStyle: "italic",
+              },
+              attributes: {
+                role: "moral",
+              },
+            },
+            {
+              id: "final_image",
+              type: "image",
+              value: "assets/lion_mouse_friends.png",
+              style: {
+                x: 550,
+                y: 120,
+                width: 200,
+                height: 150,
+                borderRadius: "8px",
+                border: "3px solid #8b4513",
+              },
+              attributes: {
+                alt: "León y ratón amigos",
+              },
+            },
+          ],
+        },
+      ],
+      elements: [
+        {
+          id: "page_title_3",
+          type: "text",
+          value: "Página 3: La ayuda inesperada",
+          style: {
+            x: 400,
+            y: 30,
+            width: 500,
+            height: 40,
+            fontSize: "22px",
+            fontWeight: "bold",
+            fontFamily: "'Comic Sans MS', cursive",
+            color: "#2c5530",
+            textAlign: "center",
+            textDecoration: "underline",
+          },
+          attributes: { role: "pageTitle" },
+        },
+        {
+          id: "text_content_3",
+          type: "text",
+          value:
+            "El ratón comenzó a roer las cuerdas de la red con sus pequeños pero afilados dientes. Trabajó sin descanso durante horas, mordisqueando una y otra cuerda hasta que, finalmente, la red comenzó a ceder.\n\n¡Estás casi libre! anunció el ratón.\n\nCon un último esfuerzo, el ratón rompió la cuerda principal y el león pudo liberarse. El poderoso león quedó asombrado y agradecido.\n\nPerdóname por haberte subestimado dijo el león. Hoy has demostrado que hasta los más pequeños pueden ser de gran ayuda.",
+          style: {
+            x: 100,
+            y: 100,
+            width: 320,
+            height: "auto",
+            fontSize: "16px",
+            fontFamily: "Georgia, serif",
+            color: "#333333",
+            lineHeight: 1.6,
+            textAlign: "justify",
+          },
+          attributes: { role: "paragraph" },
+        },
+        {
+          id: "moral_box",
+          type: "shape",
+          value: "rectangle",
+          style: {
+            x: 480,
+            y: 400,
+            width: 280,
+            height: 150,
+            fill: "#fffacd",
+            stroke: "#ffa500",
+            strokeWidth: 2,
+            borderRadius: "10px",
+          },
+          attributes: { shapeType: "rectangle" },
+        },
+        {
+          id: "moral_title",
+          type: "text",
+          value: "Moraleja",
+          style: {
+            x: 620,
+            y: 420,
+            width: 100,
+            height: 30,
+            fontSize: "18px",
+            fontWeight: "bold",
+            fontFamily: "'Comic Sans MS', cursive",
+            color: "#b8860b",
+            textAlign: "center",
+          },
+          attributes: { role: "title" },
+        },
+        {
+          id: "moral_text",
+          type: "text",
+          value:
+            "Nunca subestimes a los demás. Los actos de bondad nunca se pierden, y siempre es posible ayudar sin importar nuestro tamaño.",
+          style: {
+            x: 620,
+            y: 460,
+            width: 200,
+            height: 80,
+            fontSize: "14px",
+            fontFamily: "Georgia, serif",
+            color: "#8b4513",
+            lineHeight: 1.4,
+            textAlign: "center",
+            fontStyle: "italic",
+          },
+          attributes: { role: "moral" },
+        },
+        {
+          id: "final_image",
+          type: "image",
+          value: "assets/lion_mouse_friends.png",
+          style: {
+            x: 550,
+            y: 120,
+            width: 200,
+            height: 150,
+            borderRadius: "8px",
+            border: "3px solid #8b4513",
+          },
+          attributes: { alt: "León y ratón amigos" },
+        },
+      ],
+    },
+  ],
+  history: {
+    enabled: true,
+    maxSteps: 50,
+    steps: [],
+  },
+  relationships: {
+    groups: [
+      {
+        id: "group_1",
+        name: "Portada",
+        elementIds: ["cover_title", "cover_image", "cover_subtitle"],
+        style: {
+          x: 0,
+          y: 0,
+          rotation: 0,
+        },
+      },
+    ],
+    sequences: [
+      {
+        type: "pageOrder",
+        order: ["page_1", "page_2", "page_3"],
+      },
+    ],
+    parentChild: {},
+  },
+  templates: {
+    elementDefaults: {
+      text: {
+        type: "text",
+        value: "Nuevo texto",
+        style: {
+          x: 100,
+          y: 100,
+          width: 200,
+          height: "auto",
+          fontSize: "16px",
+          fontFamily: "inherit",
+          color: "#000000",
+          textAlign: "left",
+          backgroundColor: "transparent",
+        },
+        attributes: {
+          role: "paragraph",
+          editable: true,
+        },
+      },
+      image: {
+        type: "image",
+        value: "",
+        style: {
+          x: 100,
+          y: 100,
+          width: 200,
+          height: 150,
+          borderRadius: "0px",
+          border: "none",
+          objectFit: "contain",
+        },
+        attributes: {
+          alt: "",
+          srcType: "local",
+        },
+      },
+      shape: {
+        type: "shape",
+        value: "rectangle",
+        style: {
+          x: 100,
+          y: 100,
+          width: 100,
+          height: 100,
+          fill: "#cccccc",
+          stroke: "#000000",
+          strokeWidth: 1,
+        },
+        attributes: {
+          shapeType: "rectangle",
+        },
+      },
+    },
+    styleGroups: {
+      title: {
+        fontSize: "22px",
+        fontWeight: "bold",
+        color: "#2c5530",
+      },
+      paragraph: {
+        fontSize: "16px",
+        lineHeight: 1.6,
+        color: "#333333",
+      },
+    },
+  },
+};
+
+const sampleCanvas = {
+  books: [sampleBook],
+};
+
+const initialBooks = sampleCanvas.books;
+const initialAssets = [];
+const activeBookId = initialBooks[0]?.id || null;
+const activePageId = initialBooks[0]?.pages?.[0]?.id || null;
+
+export default {
+  Style,
+  canvas: {
+    constants: {
+      page: { width: PAGE_WIDTH, height: PAGE_HEIGHT },
+      fontFamilies,
+    },
+    data: {
+      projectName: "Cuaderno creativo",
+      books: initialBooks,
+      activeBookId,
+      activePageId,
+      uploadedImages: initialAssets,
+    },
+    ui: {
+      mode: "library",
+      zoom: 1,
+      showGrid: true,
+      showRulers: false,
+      offset: { x: 0, y: 0 },
+    },
+    interaction: {
+      selection: null,
+      isPanning: false,
+      panStart: null,
+      spacePressed: false,
+    },
+    history: {
+      past: [],
+      future: [],
+    },
+  },
+};
